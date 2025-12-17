@@ -32,26 +32,8 @@ func (l LedIfSel) String() string {
 	return fmt.Sprintf("UNKNOWN (%d)", l)
 }
 
-type LedActive uint32
-
-const (
-	LED_ACTIVE_HIGH LedActive = iota
-	LED_ACTIVE_LOW
-)
-
-func (l LedActive) String() string {
-	switch l {
-	case LED_ACTIVE_HIGH:
-		return "ACTIVE_HIGH"
-	case LED_ACTIVE_LOW:
-		return "ACTIVE_LOW"
-	}
-	return fmt.Sprintf("UNKNOWN (%d)", l)
-}
-
 type Leds struct {
 	LedIfSel
-	LedActive
 	LedSet [RTK_MAX_LED_MOD]struct {
 		Led [RTK_MAX_LED_PER_PORT]uint32
 	}
@@ -59,9 +41,6 @@ type Leds struct {
 
 func (l *Leds) Read(r *bufio.Reader) error {
 	if err := binary.Read(r, binary.BigEndian, &l.LedIfSel); err != nil {
-		return err
-	}
-	if err := binary.Read(r, binary.BigEndian, &l.LedActive); err != nil {
 		return err
 	}
 	for i := range RTK_MAX_LED_MOD {

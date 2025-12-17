@@ -8,12 +8,10 @@ gazelle(name = "gazelle")
 
 go_library(
     name = "hwpreader_lib",
-    srcs = [
-        "hwpreader.go",
-    ],
+    srcs = ["hwpreader.go"],
     importpath = "xioxoz.fr/hwpreader",
-    deps = ["//hwpreader/rtl:rtl_lib"],
     visibility = ["//visibility:private"],
+    deps = ["//hwpreader/rtl:rtl_lib"],
 )
 
 go_binary(

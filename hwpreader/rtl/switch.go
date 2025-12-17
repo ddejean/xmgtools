@@ -210,7 +210,6 @@ const switchTmpl = `Switch{
 
   .leds: {
     .led_if_sel: {{printf "%s" .Leds.LedIfSel}},
-    .led_active: {{printf "%s" .Leds.LedActive}},
     .led_definition_set: [
 {{range $i, $set := .Leds.LedSet}}{{range $j, $led := $set.Led}}{{printf "       .led_definition_set[%d].led[%d] = 0x%04x\n" $i $j $led}}{{end}}{{end}}
     ]
