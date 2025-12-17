@@ -1,6 +1,6 @@
 // Copyright (C) 2025 - Damien Dejean <dam.dejean@gmail.com>
 
-package main
+package bootext
 
 import (
 	"context"
@@ -19,7 +19,7 @@ const (
 	confTimeout = 30 * time.Second
 )
 
-type automator struct {
+type Automator struct {
 	// File to boot.
 	file string
 	// File size.
@@ -37,15 +37,15 @@ type automator struct {
 	sm *csm
 }
 
-func newAutomator(tty *serial.Port, file string, baudset string) *automator {
-	return &automator{
+func NewAutomator(tty *serial.Port, file string, baudset string) *Automator {
+	return &Automator{
 		port:    tty,
 		file:    file,
 		baudset: baudset,
 	}
 }
 
-func (a *automator) open() error {
+func (a *Automator) Open() error {
 	fstats, err := os.Stat(a.file)
 	if err != nil {
 		return err
@@ -63,7 +63,7 @@ func (a *automator) open() error {
 	return nil
 }
 
-func (a *automator) run() (bool, error) {
+func (a *Automator) Run() (bool, error) {
 	tok, lit := a.scr.scan()
 	done, err := a.sm.run(tok, lit)
 	if err != nil {
@@ -72,7 +72,7 @@ func (a *automator) run() (bool, error) {
 	return done, nil
 }
 
-func (a *automator) onHitAnyKey() error {
+func (a *Automator) onHitAnyKey() error {
 	// Console waiting for a user input to enter the debug mode.
 	if err := a.write("a"); err != nil {
 		return err
@@ -80,21 +80,21 @@ func (a *automator) onHitAnyKey() error {
 	return nil
 }
 
-func (a *automator) onWaitForBaudset() error {
+func (a *Automator) onWaitForBaudset() error {
 	// Since the baudset binary is very small and we don't control cache flush,
 	// upload it to an uncached area to avoid weird behavior issue.
 	return a.atUp(0xa1700000, int(a.baudsetSize))
 }
 
-func (a *automator) onWaitForBaudsetUpload() error {
+func (a *Automator) onWaitForBaudsetUpload() error {
 	return a.upload(a.baudset, a.baudsetSize)
 }
 
-func (a *automator) onBaudsetReady() error {
+func (a *Automator) onBaudsetReady() error {
 	return a.atGo(0xa17000c0)
 }
 
-func (a *automator) onBaudsetDone() error {
+func (a *Automator) onBaudsetDone() error {
 	stty := exec.Command("stty", "-F", "/dev/ttyUSB0", "921600")
 	if err := stty.Run(); err != nil {
 		return err
@@ -110,15 +110,15 @@ func (a *automator) onBaudsetDone() error {
 	return nil
 }
 
-func (a *automator) onWaitForFirmware() error {
+func (a *Automator) onWaitForFirmware() error {
 	return a.atUp(0x81800000, int(a.fileSize))
 }
 
-func (a *automator) onWaitForFirmwareUpload() error {
+func (a *Automator) onWaitForFirmwareUpload() error {
 	return a.upload(a.file, a.fileSize)
 }
 
-func (a *automator) onReadyToBoot() error {
+func (a *Automator) onReadyToBoot() error {
 	if err := a.atBa(5); err != nil {
 		return err
 	}
@@ -140,22 +140,22 @@ func (a *automator) onReadyToBoot() error {
 	return a.atGo(0x81800000)
 }
 
-func (a *automator) atUp(addr uint, size int) error {
+func (a *Automator) atUp(addr uint, size int) error {
 	return a.write(fmt.Sprintf("ATUP %x,%x\r\n", addr, size))
 }
 
-func (a *automator) atGo(addr uint) error {
+func (a *Automator) atGo(addr uint) error {
 	return a.write(fmt.Sprintf("ATGO %x\r\n", addr))
 }
 
-func (a *automator) atBa(level uint) error {
+func (a *Automator) atBa(level uint) error {
 	if level < 1 || level > 5 {
 		return fmt.Errorf("invalid ATBA level %v", level)
 	}
 	return a.write(fmt.Sprintf("ATBA %x\r\n", level))
 }
 
-func (a *automator) upload(file string, size int64) error {
+func (a *Automator) upload(file string, size int64) error {
 	f, err := os.OpenFile(file, 0, os.FileMode(os.O_RDONLY))
 	if err != nil {
 		return err
@@ -184,7 +184,7 @@ func (a *automator) upload(file string, size int64) error {
 
 }
 
-func (a *automator) write(cmd string) error {
+func (a *Automator) write(cmd string) error {
 	if _, err := a.port.Write([]byte(cmd)); err != nil {
 		return fmt.Errorf("failed to write: %v", err)
 	}

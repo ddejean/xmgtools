@@ -1,0 +1,17 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "bootext",
+    srcs = [
+        "automator.go",
+        "csm.go",
+        "scanner.go",
+    ],
+    importpath = "xioxoz.fr/swctl/bootext",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_github_azurity_xmodem_go//:xmodem-go",
+        "@com_github_machinebox_progress//:progress",
+        "@com_github_tarm_serial//:serial",
+    ],
+)

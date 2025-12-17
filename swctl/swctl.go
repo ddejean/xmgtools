@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/tarm/serial"
+	"xioxoz.fr/swctl/bootext"
 )
 
 var (
@@ -19,7 +20,6 @@ var (
 	ttyFlag      = flag.String("s", "", "path to the serial port")
 	baudFlag     = flag.Int("b", 115200, "speed of the serial port")
 	fileFlag     = flag.String("i", "", "path to the file to boot")
-	addrFlag     = flag.Uint64("a", uint64(0x81800000), "address where to upload the boot file")
 	poweroffFlag = flag.Bool("poweroff", false, "power off the switch")
 	bootFlag     = flag.Bool("boot", false, "boot an image on the switch")
 	rebootFlag   = flag.Bool("reboot", false, "reboot the switch")
@@ -63,16 +63,16 @@ func main() {
 		if baudsetFlag == nil || *baudsetFlag == "" {
 			log.Fatal("invalid baudset file path")
 		}
-		err := boot(plugIP, *fileFlag, *addrFlag, *ttyFlag, *baudFlag, *baudsetFlag)
+		err := boot(plugIP, *fileFlag, *ttyFlag, *baudFlag, *baudsetFlag)
 		if err != nil {
-			log.Fatalf("failed to boot %s with address %x: %v", *fileFlag, *addrFlag, err)
+			log.Fatalf("failed to boot %s: %v", *fileFlag, err)
 		}
 	} else {
 		log.Fatal("no action to do")
 	}
 }
 
-func boot(plug net.IP, filePath string, addr uint64, ttyPath string, baud int, baudsetPath string) error {
+func boot(plug net.IP, filePath string, ttyPath string, baud int, baudsetPath string) error {
 	err := reboot(plug)
 	if err != nil {
 		return fmt.Errorf("failed to reboot: %v", err)
@@ -85,11 +85,11 @@ func boot(plug net.IP, filePath string, addr uint64, ttyPath string, baud int, b
 	if err != nil {
 		return fmt.Errorf("failed to open %s: %v", ttyPath, err)
 	}
-	a := newAutomator(tty, filePath, baudsetPath)
-	a.open()
+	a := bootext.NewAutomator(tty, filePath, baudsetPath)
+	a.Open()
 
 	for {
-		done, err := a.run()
+		done, err := a.Run()
 		if err != nil {
 			return fmt.Errorf("boot automation failed: %v", err)
 		}

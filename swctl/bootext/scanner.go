@@ -1,6 +1,6 @@
 // Copyright (C) 2025 - Damien Dejean <dam.dejean@gmail.com>
 
-package main
+package bootext
 
 import (
 	"bufio"

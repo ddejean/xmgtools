@@ -9,17 +9,13 @@ gazelle(name = "gazelle")
 go_library(
     name = "swctl_lib",
     srcs = [
-        "automator.go",
-        "csm.go",
         "plug.go",
-        "scanner.go",
         "swctl.go",
     ],
     importpath = "xioxoz.fr/swctl",
     visibility = ["//visibility:private"],
     deps = [
-        "@com_github_azurity_xmodem_go//:xmodem-go",
-        "@com_github_machinebox_progress//:progress",
+        "//swctl/bootext",
         "@com_github_tarm_serial//:serial",
     ],
 )
