@@ -5,10 +5,10 @@ module(
 )
 
 # Depend on rules_go to build Go tools.
-bazel_dep(name = "rules_go", version = "0.54.1")
+bazel_dep(name = "rules_go", version = "0.59.0")
 
 # Depend on gazelle to managed go modules dependencies.
-bazel_dep(name = "gazelle", version = "0.43.0")
+bazel_dep(name = "gazelle", version = "0.47.0")
 
 # Go modules explicit dependencies.
 go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
