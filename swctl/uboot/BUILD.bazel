@@ -1,0 +1,9 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "uboot",
+    srcs = ["automator.go"],
+    importpath = "xioxoz.fr/swctl/uboot",
+    visibility = ["//visibility:public"],
+    deps = ["@com_github_tarm_serial//:serial"],
+)

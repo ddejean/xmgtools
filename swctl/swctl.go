@@ -13,18 +13,28 @@ import (
 
 	"github.com/tarm/serial"
 	"xioxoz.fr/swctl/bootext"
+	"xioxoz.fr/swctl/uboot"
 )
 
 var (
 	plugFlag     = flag.String("p", "", "plug IP address")
-	ttyFlag      = flag.String("s", "", "path to the serial port")
-	baudFlag     = flag.Int("b", 115200, "speed of the serial port")
+	ttyFlag      = flag.String("tty", "", "path to the serial port")
+	speedFlag    = flag.Int("s", 115200, "speed of the serial port")
 	fileFlag     = flag.String("i", "", "path to the file to boot")
 	poweroffFlag = flag.Bool("poweroff", false, "power off the switch")
 	bootFlag     = flag.Bool("boot", false, "boot an image on the switch")
 	rebootFlag   = flag.Bool("reboot", false, "reboot the switch")
+	ubootFlag    = flag.Bool("uboot", false, "load a firmware using U-Boot")
+	bootextFlag  = flag.Bool("bootext", false, "load a firmware using BootExt")
 	baudsetFlag  = flag.String("baudset", "", "baudset binary to load")
 )
+
+type automator interface {
+	// Start prepares the automator to load a firmware to the switch.
+	Start(tty *serial.Port) error
+	// Step executeAs the next loading step of the loader.
+	Step() (bool, error)
+}
 
 func main() {
 	log.SetFlags(0)
@@ -63,7 +73,18 @@ func main() {
 		if baudsetFlag == nil || *baudsetFlag == "" {
 			log.Fatal("invalid baudset file path")
 		}
-		err := boot(plugIP, *fileFlag, *ttyFlag, *baudFlag, *baudsetFlag)
+		if *ubootFlag == *bootextFlag {
+			log.Fatal("-uboot or -bootext are required but mutually exclusive")
+		}
+
+		var a automator
+		if *ubootFlag {
+			a = uboot.NewAutomator()
+		} else if *bootextFlag {
+			a = bootext.NewAutomator(*fileFlag, *baudsetFlag)
+		}
+
+		err := boot(plugIP, a, *ttyFlag, *speedFlag)
 		if err != nil {
 			log.Fatalf("failed to boot %s: %v", *fileFlag, err)
 		}
@@ -72,7 +93,7 @@ func main() {
 	}
 }
 
-func boot(plug net.IP, filePath string, ttyPath string, baud int, baudsetPath string) error {
+func boot(plug net.IP, a automator, ttyPath string, baud int) error {
 	err := reboot(plug)
 	if err != nil {
 		return fmt.Errorf("failed to reboot: %v", err)
@@ -85,16 +106,16 @@ func boot(plug net.IP, filePath string, ttyPath string, baud int, baudsetPath st
 	if err != nil {
 		return fmt.Errorf("failed to open %s: %v", ttyPath, err)
 	}
-	a := bootext.NewAutomator(tty, filePath, baudsetPath)
-	a.Open()
+	if err := a.Start(tty); err != nil {
+		return fmt.Errorf("failed to start the automator: %v", err)
+	}
 
-	for {
-		done, err := a.Run()
+	done := false
+	for !done {
+		var err error
+		done, err = a.Step()
 		if err != nil {
 			return fmt.Errorf("boot automation failed: %v", err)
-		}
-		if done {
-			break
 		}
 	}
 

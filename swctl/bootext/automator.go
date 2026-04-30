@@ -15,10 +15,6 @@ import (
 	"github.com/tarm/serial"
 )
 
-const (
-	confTimeout = 30 * time.Second
-)
-
 type Automator struct {
 	// File to boot.
 	file string
@@ -37,15 +33,14 @@ type Automator struct {
 	sm *csm
 }
 
-func NewAutomator(tty *serial.Port, file string, baudset string) *Automator {
+func NewAutomator(file string, baudset string) *Automator {
 	return &Automator{
-		port:    tty,
 		file:    file,
 		baudset: baudset,
 	}
 }
 
-func (a *Automator) Open() error {
+func (a *Automator) Start(tty *serial.Port) error {
 	fstats, err := os.Stat(a.file)
 	if err != nil {
 		return err
@@ -57,13 +52,13 @@ func (a *Automator) Open() error {
 		return err
 	}
 	a.baudsetSize = fstats.Size()
-
+	a.port = tty
 	a.scr = newScanner(a.port)
 	a.sm = newConsoleStateMachine(a)
 	return nil
 }
 
-func (a *Automator) Run() (bool, error) {
+func (a *Automator) Step() (bool, error) {
 	tok, lit := a.scr.scan()
 	done, err := a.sm.run(tok, lit)
 	if err != nil {
@@ -166,6 +161,7 @@ func (a *Automator) upload(file string, size int64) error {
 	conf := xmodem.XModemConfig(xmodem.ModemFnCRC | xmodem.ModemFn1k)
 	m, _, _ := xmodem.NewModem(conf, a.port, a.port)
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	go func(ctx context.Context) {
 		progressChan := progress.NewTicker(ctx, r, size, 1*time.Second)
@@ -178,7 +174,6 @@ func (a *Automator) upload(file string, size int64) error {
 	if err := m.SendBytes(r); err != nil {
 		return err
 	}
-	cancel()
 
 	return nil
 

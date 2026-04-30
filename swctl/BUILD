@@ -16,6 +16,7 @@ go_library(
     visibility = ["//visibility:private"],
     deps = [
         "//swctl/bootext",
+        "//swctl/uboot",
         "@com_github_tarm_serial//:serial",
     ],
 )
