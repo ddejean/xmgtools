@@ -46,6 +46,8 @@ func (t token) String() string {
 		return "PROMPT"
 	case OK:
 		return "OK"
+	case PRESS_ANY_KEY:
+		return "PRESS_ANY_KEY"
 	case DEBUG_MODE:
 		return "DEBUG_MODE"
 	case XMODEM_START:
@@ -57,6 +59,14 @@ func (t token) String() string {
 	default:
 		return "UNKNOWN"
 	}
+}
+
+var literals = map[string]token{
+	DEBUG_MODE_STR:      DEBUG_MODE,
+	PRESS_ANY_KEY_STR:   PRESS_ANY_KEY,
+	XMODEM_STARTING_STR: XMODEM_START,
+	OK_STR:              OK,
+	BAUDSET_DONE_STR:    BAUDSET_DONE,
 }
 
 type scanner struct {
@@ -79,73 +89,47 @@ func (s *scanner) unread() {
 	_ = s.r.UnreadRune()
 }
 
-func (s *scanner) scanPrompt() (token, string) {
-	var buf bytes.Buffer
-	for _, c := range PROMPT_STR {
-		ch := s.read()
-		_, _ = buf.WriteRune(ch)
-		if ch != c {
-			return UNKNOWN, buf.String()
-		}
-	}
-	return PROMPT, PROMPT_STR
-}
-
 func (s *scanner) scanIdentifier(lit string) (token, string) {
-	switch lit {
-	case DEBUG_MODE_STR:
-		return DEBUG_MODE, lit
-	case PRESS_ANY_KEY_STR:
-		return PRESS_ANY_KEY, lit
-	case XMODEM_STARTING_STR:
-		return XMODEM_START, lit
-	case OK_STR:
-		return OK, lit
-	case BAUDSET_DONE_STR:
-		return BAUDSET_DONE, lit
-	default:
-		return LINE, lit
+	if tok, ok := literals[lit]; ok {
+		return tok, lit
 	}
+	return LINE, lit
 }
 
-func (s *scanner) scanIdentifierOrLine() (token, string) {
+func (s *scanner) scan() (token, string) {
 	var buf bytes.Buffer
 	for {
 		ch := s.read()
-		switch ch {
-		case eof:
-			return EOF, buf.String()
-		case '\r':
-			if s.read() == '\n' {
-				s.unread()
-				continue
+		if ch == eof {
+			if buf.Len() > 0 {
+				return s.scanIdentifier(buf.String())
 			}
-			s.unread()
-			return s.scanIdentifier(buf.String())
-		case '\n':
-			return s.scanIdentifier(buf.String())
-		default:
-			_, _ = buf.WriteRune(ch)
+			return EOF, ""
 		}
-	}
-}
 
-// XMG1915-10E>
-func (s *scanner) scan() (token, string) {
-	ch := s.read()
+		// Handle line endings and trigger identifier check.
+		if ch == '\r' || ch == '\n' {
+			if ch == '\r' {
+				if next := s.read(); next != '\n' && next != eof {
+					s.unread()
+				}
+			}
+			return s.scanIdentifier(buf.String())
+		}
 
-	switch ch {
-	case eof:
-		return EOF, ""
-	case '.':
-		return DOT, string(ch)
-	case 'C':
-		return XMODEM_C, string(ch)
-	case 'X':
-		s.unread()
-		return s.scanPrompt()
-	default:
-		s.unread()
-		return s.scanIdentifierOrLine()
+		// Handle single-character tokens when the buffer is empty.
+		if buf.Len() == 0 {
+			if ch == '.' {
+				return DOT, "."
+			}
+			if ch == 'C' {
+				return XMODEM_C, "C"
+			}
+		}
+
+		buf.WriteRune(ch)
+		if buf.String() == PROMPT_STR {
+			return PROMPT, PROMPT_STR
+		}
 	}
 }

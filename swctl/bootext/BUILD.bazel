@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "bootext",
@@ -14,4 +14,10 @@ go_library(
         "@com_github_machinebox_progress//:progress",
         "@com_github_tarm_serial//:serial",
     ],
+)
+
+go_test(
+    name = "bootext_test",
+    srcs = ["scanner_test.go"],
+    embed = [":bootext"],
 )
