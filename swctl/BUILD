@@ -26,3 +26,10 @@ go_binary(
     embed = [":swctl_lib"],
     visibility = ["//visibility:public"],
 )
+
+test_suite(
+    name = 'all_tests',
+    tests = [
+        "//swctl/bootext:bootext_test",
+    ],
+)
