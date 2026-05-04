@@ -23,6 +23,7 @@ var (
 	fileFlag     = flag.String("i", "", "path to the file to boot")
 	poweroffFlag = flag.Bool("poweroff", false, "power off the switch")
 	bootFlag     = flag.Bool("boot", false, "boot an image on the switch")
+	waitFlag     = flag.Bool("wait", false, "wait after boot")
 	rebootFlag   = flag.Bool("reboot", false, "reboot the switch")
 	ubootFlag    = flag.Bool("uboot", false, "load a firmware using U-Boot")
 	bootextFlag  = flag.Bool("bootext", false, "load a firmware using BootExt")
@@ -56,14 +57,18 @@ func main() {
 		}
 		return
 
-	} else if rebootFlag != nil && *rebootFlag {
+	}
+
+	if rebootFlag != nil && *rebootFlag {
 		log.Println("Rebooting the switch")
 		if err := reboot(plugIP); err != nil {
 			log.Fatal(err)
 		}
 		return
 
-	} else if bootFlag != nil && *bootFlag {
+	}
+
+	if bootFlag != nil && *bootFlag {
 		if ttyFlag == nil || *ttyFlag == "" {
 			log.Fatal("invalid serial port path")
 		}
@@ -84,7 +89,7 @@ func main() {
 			a = bootext.NewAutomator(*fileFlag, *baudsetFlag)
 		}
 
-		err := boot(plugIP, a, *ttyFlag, *speedFlag)
+		err := boot(plugIP, a, *ttyFlag, *speedFlag, *waitFlag)
 		if err != nil {
 			log.Fatalf("failed to boot %s: %v", *fileFlag, err)
 		}
@@ -93,7 +98,7 @@ func main() {
 	}
 }
 
-func boot(plug net.IP, a automator, ttyPath string, baud int) error {
+func boot(plug net.IP, a automator, ttyPath string, baud int, wait bool) error {
 	err := reboot(plug)
 	if err != nil {
 		return fmt.Errorf("failed to reboot: %v", err)
@@ -106,6 +111,8 @@ func boot(plug net.IP, a automator, ttyPath string, baud int) error {
 	if err != nil {
 		return fmt.Errorf("failed to open %s: %v", ttyPath, err)
 	}
+	defer tty.Close()
+
 	if err := a.Start(tty); err != nil {
 		return fmt.Errorf("failed to start the automator: %v", err)
 	}
@@ -119,14 +126,18 @@ func boot(plug net.IP, a automator, ttyPath string, baud int) error {
 		}
 	}
 
-	go func() {
+	if wait {
+		go func() {
+			for {
+				io.Copy(tty, os.Stdin)
+			}
+		}()
+
 		for {
-			io.Copy(tty, os.Stdin)
+			io.Copy(os.Stdout, tty)
 		}
-	}()
-	for {
-		io.Copy(os.Stdout, tty)
 	}
+	return nil
 }
 
 func poweroff(addr net.IP) error {
