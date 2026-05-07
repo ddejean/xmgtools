@@ -75,9 +75,6 @@ func main() {
 		if fileFlag == nil || *fileFlag == "" {
 			log.Fatal("invalid boot file path")
 		}
-		if baudsetFlag == nil || *baudsetFlag == "" {
-			log.Fatal("invalid baudset file path")
-		}
 		if *ubootFlag == *bootextFlag {
 			log.Fatal("-uboot or -bootext are required but mutually exclusive")
 		}

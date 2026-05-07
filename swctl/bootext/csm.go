@@ -14,6 +14,7 @@ type smCallbacks interface {
 	// onHitAnyKey is called when the switch shell requires the user to type any
 	// key.
 	onHitAnyKey() error
+	onHasBaudset() bool
 	onWaitForBaudset() error
 	onWaitForBaudsetUpload() error
 	onBaudsetReady() error
@@ -45,7 +46,6 @@ func (sm *csm) run(tok token, lit string) (bool, error) {
 	if sm.done {
 		return sm.done, nil
 	}
-	//log.Println(tok.String(), "(", lit, ")")
 	state, err := sm.state(sm, tok, lit)
 	if err != nil {
 		return false, err
@@ -82,7 +82,11 @@ func hitTheKeyState(sm *csm, tok token, lit string) (stateFunc, error) {
 		return hitTheKeyState, nil
 	case DEBUG_MODE:
 		sm.print(lit)
-		return baudsetLoadState, nil
+		if sm.callbacks.onHasBaudset() {
+			return baudsetLoadState, nil
+		} else {
+			return promptState, nil
+		}
 	case LINE:
 		sm.print(lit)
 	}

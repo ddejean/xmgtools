@@ -47,11 +47,16 @@ func (a *Automator) Start(tty *serial.Port) error {
 	}
 	a.fileSize = fstats.Size()
 
-	fstats, err = os.Stat(a.baudset)
-	if err != nil {
-		return err
+	if a.baudset != "" {
+		fstats, err = os.Stat(a.baudset)
+		if err != nil {
+			return err
+		}
+		a.baudsetSize = fstats.Size()
+	} else {
+		a.baudsetSize = 0
 	}
-	a.baudsetSize = fstats.Size()
+
 	a.port = tty
 	a.scr = newScanner(a.port)
 	a.sm = newConsoleStateMachine(a)
@@ -73,6 +78,10 @@ func (a *Automator) onHitAnyKey() error {
 		return err
 	}
 	return nil
+}
+
+func (a *Automator) onHasBaudset() bool {
+	return a.baudset != "" && a.baudsetSize > 0
 }
 
 func (a *Automator) onWaitForBaudset() error {
