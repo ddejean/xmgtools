@@ -54,19 +54,11 @@ func (sm *csm) run(tok token, lit string) (bool, error) {
 	return sm.done, nil
 }
 
-func (sm *csm) print(line string) {
-	if line != "" {
-		log.Println(line)
-	}
-}
-
 func startState(sm *csm, tok token, lit string) (stateFunc, error) {
 	switch tok {
 	case PRESS_ANY_KEY:
-		sm.print(lit)
 		return hitTheKeyState, nil
 	case LINE:
-		sm.print(lit)
 	default:
 	}
 	return startState, nil
@@ -81,14 +73,11 @@ func hitTheKeyState(sm *csm, tok token, lit string) (stateFunc, error) {
 		}
 		return hitTheKeyState, nil
 	case DEBUG_MODE:
-		sm.print(lit)
 		if sm.callbacks.onHasBaudset() {
 			return baudsetLoadState, nil
 		} else {
 			return promptState, nil
 		}
-	case LINE:
-		sm.print(lit)
 	}
 	return hitTheKeyState, nil
 }
@@ -96,17 +85,13 @@ func hitTheKeyState(sm *csm, tok token, lit string) (stateFunc, error) {
 func baudsetLoadState(sm *csm, tok token, lit string) (stateFunc, error) {
 	switch tok {
 	case PROMPT:
-		sm.print(lit)
 		err := sm.callbacks.onWaitForBaudset()
 		if err != nil {
 			return errorState, err
 		}
 		return baudsetLoadState, nil
 	case XMODEM_START:
-		sm.print(lit)
 		return baudsetDownloadState, nil
-	case LINE:
-		sm.print(lit)
 	}
 	return baudsetLoadState, nil
 }
@@ -122,8 +107,6 @@ func baudsetDownloadState(sm *csm, tok token, lit string) (stateFunc, error) {
 		return baudsetReadyState, nil
 	case PROMPT:
 		return baudsetReadyState(sm, tok, lit)
-	default:
-		sm.print(lit)
 	}
 	return baudsetDownloadState, nil
 }
@@ -142,8 +125,6 @@ func baudsetReadyState(sm *csm, tok token, lit string) (stateFunc, error) {
 			return errorState, nil
 		}
 		return promptState, nil
-	default:
-		sm.print(lit)
 	}
 	return baudsetReadyState, nil
 }
@@ -151,17 +132,13 @@ func baudsetReadyState(sm *csm, tok token, lit string) (stateFunc, error) {
 func promptState(sm *csm, tok token, lit string) (stateFunc, error) {
 	switch tok {
 	case PROMPT:
-		sm.print(lit)
 		err := sm.callbacks.onWaitForFirmware()
 		if err != nil {
 			return errorState, err
 		}
 		return promptState, nil
 	case XMODEM_START:
-		sm.print(lit)
 		return xmodemState, nil
-	case LINE:
-		sm.print(lit)
 	}
 	return promptState, nil
 }
@@ -175,8 +152,6 @@ func xmodemState(sm *csm, tok token, lit string) (stateFunc, error) {
 		}
 	case OK:
 		return bootState, nil
-	default:
-		sm.print(lit)
 	}
 	return xmodemState, nil
 }
@@ -190,8 +165,6 @@ func bootState(sm *csm, tok token, lit string) (stateFunc, error) {
 		}
 	case OK:
 		return doneState, nil
-	default:
-		sm.print(lit)
 	}
 	return bootState, nil
 }

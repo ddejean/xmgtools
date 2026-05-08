@@ -12,7 +12,7 @@ import (
 
 	xmodem "github.com/azurity/xmodem-go"
 	"github.com/machinebox/progress"
-	"github.com/tarm/serial"
+	"xioxoz.fr/swctl/utils"
 )
 
 type Automator struct {
@@ -26,7 +26,7 @@ type Automator struct {
 	baudsetSize int64
 
 	// Serial port instance.
-	port *serial.Port
+	rw *utils.LogReadWriter
 	// Scanner bound to the serial port.
 	scr *scanner
 	// State machine processing the serial console content.
@@ -40,7 +40,7 @@ func NewAutomator(file string, baudset string) *Automator {
 	}
 }
 
-func (a *Automator) Start(tty *serial.Port) error {
+func (a *Automator) Start(rw *utils.LogReadWriter) error {
 	fstats, err := os.Stat(a.file)
 	if err != nil {
 		return err
@@ -57,8 +57,8 @@ func (a *Automator) Start(tty *serial.Port) error {
 		a.baudsetSize = 0
 	}
 
-	a.port = tty
-	a.scr = newScanner(a.port)
+	a.rw = rw
+	a.scr = newScanner(a.rw)
 	a.sm = newConsoleStateMachine(a)
 	return nil
 }
@@ -168,7 +168,7 @@ func (a *Automator) upload(file string, size int64) error {
 
 	r := progress.NewReader(f)
 	conf := xmodem.XModemConfig(xmodem.ModemFnCRC | xmodem.ModemFn1k)
-	m, _, _ := xmodem.NewModem(conf, a.port, a.port)
+	m, _, _ := xmodem.NewModem(conf, a.rw, a.rw)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -189,7 +189,7 @@ func (a *Automator) upload(file string, size int64) error {
 }
 
 func (a *Automator) write(cmd string) error {
-	if _, err := a.port.Write([]byte(cmd)); err != nil {
+	if _, err := a.rw.Write([]byte(cmd)); err != nil {
 		return fmt.Errorf("failed to write: %v", err)
 	}
 	return nil

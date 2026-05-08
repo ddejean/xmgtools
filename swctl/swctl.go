@@ -14,6 +14,7 @@ import (
 	"github.com/tarm/serial"
 	"xioxoz.fr/swctl/bootext"
 	"xioxoz.fr/swctl/uboot"
+	"xioxoz.fr/swctl/utils"
 )
 
 var (
@@ -32,7 +33,7 @@ var (
 
 type automator interface {
 	// Start prepares the automator to load a firmware to the switch.
-	Start(tty *serial.Port) error
+	Start(rw *utils.LogReadWriter) error
 	// Step executeAs the next loading step of the loader.
 	Step() (bool, error)
 }
@@ -110,7 +111,7 @@ func boot(plug net.IP, a automator, ttyPath string, baud int, wait bool) error {
 	}
 	defer tty.Close()
 
-	if err := a.Start(tty); err != nil {
+	if err := a.Start(utils.NewLogReadWriter(tty, log.Writer())); err != nil {
 		return fmt.Errorf("failed to start the automator: %v", err)
 	}
 

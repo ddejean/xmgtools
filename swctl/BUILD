@@ -17,6 +17,7 @@ go_library(
     deps = [
         "//swctl/bootext",
         "//swctl/uboot",
+        "//swctl/utils",
         "@com_github_tarm_serial//:serial",
     ],
 )
@@ -28,8 +29,9 @@ go_binary(
 )
 
 test_suite(
-    name = 'all_tests',
+    name = "all_tests",
     tests = [
         "//swctl/bootext:bootext_test",
+        "//swctl/utils:utils_test",
     ],
 )

@@ -10,9 +10,9 @@ go_library(
     importpath = "xioxoz.fr/swctl/bootext",
     visibility = ["//visibility:public"],
     deps = [
+        "//swctl/utils",
         "@com_github_azurity_xmodem_go//:xmodem-go",
         "@com_github_machinebox_progress//:progress",
-        "@com_github_tarm_serial//:serial",
     ],
 )
 

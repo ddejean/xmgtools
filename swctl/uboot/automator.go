@@ -2,7 +2,7 @@
 
 package uboot
 
-import "github.com/tarm/serial"
+import "xioxoz.fr/swctl/utils"
 
 type Automator struct {
 }
@@ -11,7 +11,7 @@ func NewAutomator() *Automator {
 	return &Automator{}
 }
 
-func (a *Automator) Start(tty *serial.Port) error {
+func (a *Automator) Start(rw *utils.LogReadWriter) error {
 	return nil
 }
 

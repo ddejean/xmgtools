@@ -5,5 +5,5 @@ go_library(
     srcs = ["automator.go"],
     importpath = "xioxoz.fr/swctl/uboot",
     visibility = ["//visibility:public"],
-    deps = ["@com_github_tarm_serial//:serial"],
+    deps = ["//swctl/utils"],
 )
