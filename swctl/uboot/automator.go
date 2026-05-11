@@ -2,7 +2,11 @@
 
 package uboot
 
-import "xioxoz.fr/swctl/utils"
+import (
+	"context"
+
+	"xioxoz.fr/swctl/utils"
+)
 
 type Automator struct {
 }
@@ -15,6 +19,6 @@ func (a *Automator) Start(rw *utils.LogReadWriter) error {
 	return nil
 }
 
-func (a *Automator) Step() (bool, error) {
-	return true, nil
+func (a *Automator) Run(ctx context.Context) error {
+	return nil
 }

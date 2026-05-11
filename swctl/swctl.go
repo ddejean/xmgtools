@@ -3,6 +3,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io"
@@ -34,12 +35,13 @@ var (
 type automator interface {
 	// Start prepares the automator to load a firmware to the switch.
 	Start(rw *utils.LogReadWriter) error
-	// Step executeAs the next loading step of the loader.
-	Step() (bool, error)
+	// Run processes the various steps of the automator.
+	Run(ctx context.Context) error
 }
 
 func main() {
 	log.SetFlags(0)
+	log.SetPrefix("[swctl] ")
 	flag.Parse()
 
 	if *plugFlag == "" {
@@ -115,13 +117,9 @@ func boot(plug net.IP, a automator, ttyPath string, baud int, wait bool) error {
 		return fmt.Errorf("failed to start the automator: %v", err)
 	}
 
-	done := false
-	for !done {
-		var err error
-		done, err = a.Step()
-		if err != nil {
-			return fmt.Errorf("boot automation failed: %v", err)
-		}
+	if err := a.Run(context.Background()); err != nil {
+		return fmt.Errorf("boot automation failed: %v", err)
+
 	}
 
 	if wait {

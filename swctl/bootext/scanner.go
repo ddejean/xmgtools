@@ -15,6 +15,7 @@ const (
 	DEBUG_MODE_STR      = "Enter Debug Mode"
 	XMODEM_STARTING_STR = "Starting XMODEM upload (CRC mode)...."
 	OK_STR              = "OK"
+	ERROR_STR           = "ERROR"
 	BAUDSET_DONE_STR    = "BAUDSET DONE"
 )
 
@@ -26,6 +27,7 @@ const (
 	LINE
 	PROMPT
 	OK
+	ERROR
 	PRESS_ANY_KEY
 	DEBUG_MODE
 	XMODEM_START
@@ -46,6 +48,8 @@ func (t token) String() string {
 		return "PROMPT"
 	case OK:
 		return "OK"
+	case ERROR:
+		return "ERROR"
 	case PRESS_ANY_KEY:
 		return "PRESS_ANY_KEY"
 	case DEBUG_MODE:
@@ -66,6 +70,7 @@ var literals = map[string]token{
 	PRESS_ANY_KEY_STR:   PRESS_ANY_KEY,
 	XMODEM_STARTING_STR: XMODEM_START,
 	OK_STR:              OK,
+	ERROR_STR:           ERROR,
 	BAUDSET_DONE_STR:    BAUDSET_DONE,
 }
 

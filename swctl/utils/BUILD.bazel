@@ -2,13 +2,20 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "utils",
-    srcs = ["logrw.go"],
+    srcs = [
+        "logrw.go",
+        "sm.go",
+    ],
     importpath = "xioxoz.fr/swctl/utils",
     visibility = ["//visibility:public"],
 )
 
 go_test(
     name = "utils_test",
-    srcs = ["logrw_test.go"],
+    size = "small",
+    srcs = [
+        "logrw_test.go",
+        "sm_test.go",
+    ],
     embed = [":utils"],
 )
