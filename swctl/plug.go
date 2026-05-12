@@ -3,6 +3,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -28,8 +29,13 @@ func newPlug(ip string) *plug {
 	}
 }
 
-func (p *plug) isOn() (bool, error) {
-	res, err := http.Get(p.url)
+func (p *plug) isOn(ctx context.Context) (bool, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, p.url, nil)
+	if err != nil {
+		return false, err
+	}
+
+	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return false, err
 	}
@@ -42,8 +48,8 @@ func (p *plug) isOn() (bool, error) {
 	return r.IsOn, nil
 }
 
-func (p *plug) turnOn(on bool) error {
-	req, err := http.NewRequest(http.MethodGet, p.url, nil)
+func (p *plug) turnOn(ctx context.Context, on bool) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, p.url, nil)
 	if err != nil {
 		return err
 	}

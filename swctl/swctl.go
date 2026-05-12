@@ -18,6 +18,11 @@ import (
 	"xioxoz.fr/swctl/utils"
 )
 
+const (
+	poweroffTimeout = 3 * time.Second
+	rebootTimeout   = 10 * time.Second
+)
+
 var (
 	plugFlag     = flag.String("p", "", "plug IP address")
 	ttyFlag      = flag.String("tty", "", "path to the serial port")
@@ -53,22 +58,23 @@ func main() {
 	}
 	log.Printf("Switch plug: %v", plugIP)
 
+	// Base context for the whole program.
+	ctx := context.Background()
+
 	if poweroffFlag != nil && *poweroffFlag {
 		log.Println("Powering of the switch")
-		if err := poweroff(plugIP); err != nil {
+		if err := poweroff(ctx, plugIP); err != nil {
 			log.Fatal(err)
 		}
 		return
-
 	}
 
 	if rebootFlag != nil && *rebootFlag {
 		log.Println("Rebooting the switch")
-		if err := reboot(plugIP); err != nil {
+		if err := reboot(ctx, plugIP); err != nil {
 			log.Fatal(err)
 		}
 		return
-
 	}
 
 	if bootFlag != nil && *bootFlag {
@@ -89,7 +95,7 @@ func main() {
 			a = bootext.NewAutomator(*fileFlag, *baudsetFlag)
 		}
 
-		err := boot(plugIP, a, *ttyFlag, *speedFlag, *waitFlag)
+		err := boot(ctx, plugIP, a, *ttyFlag, *speedFlag, *waitFlag)
 		if err != nil {
 			log.Fatalf("failed to boot %s: %v", *fileFlag, err)
 		}
@@ -98,8 +104,8 @@ func main() {
 	}
 }
 
-func boot(plug net.IP, a automator, ttyPath string, baud int, wait bool) error {
-	err := reboot(plug)
+func boot(ctx context.Context, plug net.IP, a automator, ttyPath string, baud int, wait bool) error {
+	err := reboot(ctx, plug)
 	if err != nil {
 		return fmt.Errorf("failed to reboot: %v", err)
 	}
@@ -117,7 +123,7 @@ func boot(plug net.IP, a automator, ttyPath string, baud int, wait bool) error {
 		return fmt.Errorf("failed to start the automator: %v", err)
 	}
 
-	if err := a.Run(context.Background()); err != nil {
+	if err := a.Run(ctx); err != nil {
 		return fmt.Errorf("boot automation failed: %v", err)
 
 	}
@@ -136,27 +142,33 @@ func boot(plug net.IP, a automator, ttyPath string, baud int, wait bool) error {
 	return nil
 }
 
-func poweroff(addr net.IP) error {
+func poweroff(ctx context.Context, addr net.IP) error {
+	ctx, cancel := context.WithTimeout(ctx, poweroffTimeout)
+	defer cancel()
+
 	p := newPlug(addr.String())
-	return p.turnOn(false)
+	return p.turnOn(ctx, false)
 }
 
-func reboot(addr net.IP) error {
+func reboot(ctx context.Context, addr net.IP) error {
+	ctx, cancel := context.WithTimeout(ctx, rebootTimeout)
+	defer cancel()
+
 	p := newPlug(addr.String())
 
-	isOn, err := p.isOn()
+	isOn, err := p.isOn(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to check plug status: %v", err)
 	}
 
 	if isOn {
-		err = p.turnOn(false)
+		err = p.turnOn(ctx, false)
 		if err != nil {
 			return fmt.Errorf("failed to power off the switch: %v", err)
 		}
 		time.Sleep(1 * time.Second)
 	}
-	err = p.turnOn(true)
+	err = p.turnOn(ctx, true)
 	if err != nil {
 		return fmt.Errorf("failed to power on the switch: %v", err)
 	}

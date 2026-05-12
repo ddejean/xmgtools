@@ -149,6 +149,9 @@ func (a *Automator) atBa(level uint) error {
 }
 
 func (a *Automator) upload(ctx context.Context, file string, size int64) error {
+	cancelableCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	f, err := os.OpenFile(file, 0, os.FileMode(os.O_RDONLY))
 	if err != nil {
 		return err
@@ -158,8 +161,6 @@ func (a *Automator) upload(ctx context.Context, file string, size int64) error {
 	r := progress.NewReader(f)
 	conf := xmodem.XModemConfig(xmodem.ModemFnCRC | xmodem.ModemFn1k)
 	m, _, _ := xmodem.NewModem(conf, a.rw, a.rw)
-	cancelableCtx, cancel := context.WithCancel(ctx)
-	defer cancel()
 
 	go func(ctx context.Context) {
 		progressChan := progress.NewTicker(ctx, r, size, 1*time.Second)
