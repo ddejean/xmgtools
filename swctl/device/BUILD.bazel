@@ -1,0 +1,12 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "device_lib",
+    srcs = [
+        "device.go",
+        "plug.go",
+    ],
+    importpath = "xioxoz.fr/swctl/device",
+    visibility = ["//visibility:public"],
+    deps = ["@com_github_tarm_serial//:serial"],
+)

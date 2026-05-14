@@ -10,17 +10,11 @@ import (
 	"log"
 	"net"
 	"os"
-	"time"
 
-	"github.com/tarm/serial"
 	"xioxoz.fr/swctl/bootext"
+	"xioxoz.fr/swctl/device"
 	"xioxoz.fr/swctl/uboot"
 	"xioxoz.fr/swctl/utils"
-)
-
-const (
-	poweroffTimeout = 3 * time.Second
-	rebootTimeout   = 10 * time.Second
 )
 
 var (
@@ -56,14 +50,26 @@ func main() {
 	if plugIP == nil {
 		log.Fatalf("invalid IP address '%s'", *plugFlag)
 	}
-	log.Printf("Switch plug: %v", plugIP)
 
 	// Base context for the whole program.
 	ctx := context.Background()
 
+	// Create a device instance based on the flags.
+	var dev *device.Device
+	var err error
+	if ttyFlag == nil || *ttyFlag == "" {
+		dev, err = device.New(plugIP.String())
+	} else {
+		dev, err = device.WithConsole(plugIP.String(), *ttyFlag, *speedFlag)
+	}
+	if err != nil {
+		log.Fatalf("failed to create device: %v", err)
+	}
+	log.Printf("Using device: %s", dev)
+
 	if poweroffFlag != nil && *poweroffFlag {
 		log.Println("Powering of the switch")
-		if err := poweroff(ctx, plugIP); err != nil {
+		if err := dev.PowerOff(ctx); err != nil {
 			log.Fatal(err)
 		}
 		return
@@ -71,16 +77,13 @@ func main() {
 
 	if rebootFlag != nil && *rebootFlag {
 		log.Println("Rebooting the switch")
-		if err := reboot(ctx, plugIP); err != nil {
+		if err := dev.Reboot(ctx); err != nil {
 			log.Fatal(err)
 		}
 		return
 	}
 
 	if bootFlag != nil && *bootFlag {
-		if ttyFlag == nil || *ttyFlag == "" {
-			log.Fatal("invalid serial port path")
-		}
 		if fileFlag == nil || *fileFlag == "" {
 			log.Fatal("invalid boot file path")
 		}
@@ -95,31 +98,32 @@ func main() {
 			a = bootext.NewAutomator(*fileFlag, *baudsetFlag)
 		}
 
-		err := boot(ctx, plugIP, a, *ttyFlag, *speedFlag, *waitFlag)
+		err := boot(ctx, dev, a)
 		if err != nil {
 			log.Fatalf("failed to boot %s: %v", *fileFlag, err)
 		}
-	} else {
-		log.Fatal("no action to do")
+	}
+
+	if *waitFlag {
+		go func() {
+			for {
+				io.Copy(dev.Console(), os.Stdin)
+			}
+		}()
+
+		for {
+			io.Copy(os.Stdout, dev.Console())
+		}
 	}
 }
 
-func boot(ctx context.Context, plug net.IP, a automator, ttyPath string, baud int, wait bool) error {
-	err := reboot(ctx, plug)
+func boot(ctx context.Context, dev *device.Device, a automator) error {
+	err := dev.Reboot(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to reboot: %v", err)
 	}
 
-	tty, err := serial.OpenPort(&serial.Config{
-		Name: ttyPath,
-		Baud: baud,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to open %s: %v", ttyPath, err)
-	}
-	defer tty.Close()
-
-	if err := a.Start(utils.NewLogReadWriter(tty, log.Writer())); err != nil {
+	if err := a.Start(utils.NewLogReadWriter(dev.Console(), log.Writer())); err != nil {
 		return fmt.Errorf("failed to start the automator: %v", err)
 	}
 
@@ -128,49 +132,5 @@ func boot(ctx context.Context, plug net.IP, a automator, ttyPath string, baud in
 
 	}
 
-	if wait {
-		go func() {
-			for {
-				io.Copy(tty, os.Stdin)
-			}
-		}()
-
-		for {
-			io.Copy(os.Stdout, tty)
-		}
-	}
-	return nil
-}
-
-func poweroff(ctx context.Context, addr net.IP) error {
-	ctx, cancel := context.WithTimeout(ctx, poweroffTimeout)
-	defer cancel()
-
-	p := newPlug(addr.String())
-	return p.turnOn(ctx, false)
-}
-
-func reboot(ctx context.Context, addr net.IP) error {
-	ctx, cancel := context.WithTimeout(ctx, rebootTimeout)
-	defer cancel()
-
-	p := newPlug(addr.String())
-
-	isOn, err := p.isOn(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to check plug status: %v", err)
-	}
-
-	if isOn {
-		err = p.turnOn(ctx, false)
-		if err != nil {
-			return fmt.Errorf("failed to power off the switch: %v", err)
-		}
-		time.Sleep(1 * time.Second)
-	}
-	err = p.turnOn(ctx, true)
-	if err != nil {
-		return fmt.Errorf("failed to power on the switch: %v", err)
-	}
 	return nil
 }

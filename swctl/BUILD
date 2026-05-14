@@ -8,14 +8,12 @@ gazelle(name = "gazelle")
 
 go_library(
     name = "swctl_lib",
-    srcs = [
-        "plug.go",
-        "swctl.go",
-    ],
+    srcs = ["swctl.go"],
     importpath = "xioxoz.fr/swctl",
     visibility = ["//visibility:private"],
     deps = [
         "//swctl/bootext",
+        "//swctl/device:device_lib",
         "//swctl/uboot",
         "//swctl/utils",
         "@com_github_tarm_serial//:serial",
